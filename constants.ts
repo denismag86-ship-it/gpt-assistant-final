@@ -1,8 +1,12 @@
 // Providers Presets
 export const API_PRESETS = {
   OPENAI: {
-    name: "OpenAI (Official)",
+    name: "OpenAI",
     url: "https://api.openai.com/v1/chat/completions"
+  },
+  GOOGLE: {
+    name: "Google Gemini",
+    url: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
   },
   OPENROUTER: {
     name: "OpenRouter",
@@ -13,7 +17,7 @@ export const API_PRESETS = {
     url: "https://api.polza.ai/v1/chat/completions"
   },
   GROQ: {
-    name: "Groq (Fastest)",
+    name: "Groq",
     url: "https://api.groq.com/openai/v1/chat/completions"
   },
   DEEPSEEK: {
@@ -31,7 +35,8 @@ export const DEFAULT_API_URL = API_PRESETS.OPENAI.url;
 export const DEFAULT_SYSTEM_PROMPT = `You are an expert Senior Software Engineer and Architect. 
 You specialize in writing clean, efficient, and well-documented code.
 When providing code, ALWAYS wrap it in markdown code blocks with the language specified.
-If the response is long, structure it clearly with headers.`;
+If the response is long, structure it clearly with headers.
+If requested to generate images or media, provide the markdown image syntax or appropriate links.`;
 
 export const AVAILABLE_MODELS = [
   // OpenAI Next-Gen
@@ -43,15 +48,16 @@ export const AVAILABLE_MODELS = [
   { id: 'gpt-4o', name: 'GPT-4o', provider: 'OpenAI' },
   { id: 'gpt-4o-mini', name: 'GPT-4o Mini', provider: 'OpenAI' },
   
+  // Google
+  { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', provider: 'Google' },
+  { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', provider: 'Google' },
+  { id: 'gemini-2.0-flash-exp', name: 'Gemini 2.0 Flash (Exp)', provider: 'Google' },
+
   // Anthropic
   { id: 'claude-4-5-opus-20251126', name: 'Claude 4.5 Opus (Nov 2025)', provider: 'Anthropic' },
   { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet', provider: 'Anthropic' },
   { id: 'claude-3-5-haiku-20241022', name: 'Claude 3.5 Haiku', provider: 'Anthropic' },
   { id: 'claude-3-opus-latest', name: 'Claude 3 Opus', provider: 'Anthropic' },
-  
-  // Google
-  { id: 'gemini-1.5-pro-latest', name: 'Gemini 1.5 Pro', provider: 'Google' },
-  { id: 'gemini-1.5-flash-latest', name: 'Gemini 1.5 Flash', provider: 'Google' },
   
   // Open Source / DeepSeek
   { id: 'deepseek-chat', name: 'DeepSeek V3', provider: 'DeepSeek' },
@@ -66,4 +72,5 @@ export const DEFAULT_SETTINGS = {
   model: 'gpt-4o',
   systemPrompt: DEFAULT_SYSTEM_PROMPT,
   temperature: 0.7,
+  keyMap: {}, // Initialize empty key map
 };
