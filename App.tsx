@@ -15,15 +15,16 @@ const App: React.FC = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   
   const [settings, setSettings] = useState<AppSettings>(() => {
-    const saved = localStorage.getItem('universal-ai-settings'); // Changed storage key
+    const saved = localStorage.getItem('universal-ai-settings'); 
     if (saved) {
         const parsed = JSON.parse(saved);
-        return { ...DEFAULT_SETTINGS, ...parsed };
+        // Ensure keyMap exists for users upgrading from older version
+        return { ...DEFAULT_SETTINGS, ...parsed, keyMap: parsed.keyMap || {} };
     }
     // Fallback for migration from old app version
     const oldSaved = localStorage.getItem('ohmygpt-settings');
     if (oldSaved) {
-        return { ...DEFAULT_SETTINGS, ...JSON.parse(oldSaved) };
+        return { ...DEFAULT_SETTINGS, ...JSON.parse(oldSaved), keyMap: {} };
     }
     return DEFAULT_SETTINGS;
   });
@@ -55,7 +56,7 @@ const App: React.FC = () => {
     if (!input.trim() || isLoading) return;
 
     // We allow missing API key if it's localhost (e.g. Ollama)
-    const isLocal = settings.apiUrl.includes('localhost');
+    const isLocal = settings.apiUrl.includes('localhost') || settings.apiUrl.includes('127.0.0.1');
     if (!settings.apiKey && !isLocal) {
       setIsSettingsOpen(true);
       return;
@@ -170,16 +171,16 @@ const App: React.FC = () => {
               </div>
               <h2 className="text-2xl font-bold text-gray-200 mb-3">Connect your Model</h2>
               <p className="max-w-md text-gray-400 mb-8 leading-relaxed">
-                Connect to OpenAI, Groq, DeepSeek, or run local models with Ollama. 
-                Configure your provider settings to get started.
+                Connect to Google Gemini, OpenAI, Groq, DeepSeek, or run local models. 
+                Configure your provider settings to get started. Keys are saved automatically per provider.
               </p>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-sm">
                   <button onClick={() => setIsSettingsOpen(true)} className="flex items-center justify-center gap-2 px-4 py-3 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-xl transition text-sm">
-                    <span className="w-2 h-2 rounded-full bg-green-500"></span> OpenAI / Groq
+                    <span className="w-2 h-2 rounded-full bg-blue-500"></span> Google Gemini
                   </button>
                   <button onClick={() => setIsSettingsOpen(true)} className="flex items-center justify-center gap-2 px-4 py-3 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-xl transition text-sm">
-                    <span className="w-2 h-2 rounded-full bg-orange-500"></span> Ollama (Local)
+                    <span className="w-2 h-2 rounded-full bg-green-500"></span> OpenAI / Groq
                   </button>
               </div>
             </div>
