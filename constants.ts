@@ -4,9 +4,13 @@ export const API_PRESETS = {
     name: "OpenAI (Official)",
     url: "https://api.openai.com/v1/chat/completions"
   },
-  OHMYGPT: {
-    name: "OhMyGPT",
-    url: "https://api.ohmygpt.com/v1/chat/completions"
+  OPENROUTER: {
+    name: "OpenRouter",
+    url: "https://openrouter.ai/api/v1/chat/completions"
+  },
+  POLZA: {
+    name: "Polza AI",
+    url: "https://api.polza.ai/v1/chat/completions"
   },
   GROQ: {
     name: "Groq (Fastest)",
@@ -30,24 +34,30 @@ When providing code, ALWAYS wrap it in markdown code blocks with the language sp
 If the response is long, structure it clearly with headers.`;
 
 export const AVAILABLE_MODELS = [
-  // OpenAI & Compatible
-  { id: 'gpt-4o', name: 'GPT-4 Omni' },
-  { id: 'gpt-4-turbo', name: 'GPT-4 Turbo' },
-  { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo' },
+  // OpenAI Next-Gen
+  { id: 'gpt-5', name: 'GPT-5 (Preview)', provider: 'OpenAI' },
+  { id: 'o1-preview', name: 'OpenAI o1 (Reasoning)', provider: 'OpenAI' },
+  { id: 'o1-mini', name: 'OpenAI o1-mini (Fast)', provider: 'OpenAI' },
   
-  // Anthropic (via proxies mostly)
-  { id: 'claude-3-5-sonnet-20240620', name: 'Claude 3.5 Sonnet' },
-  { id: 'claude-3-opus-20240229', name: 'Claude 3 Opus' },
+  // OpenAI Current Gen
+  { id: 'gpt-4o', name: 'GPT-4o', provider: 'OpenAI' },
+  { id: 'gpt-4o-mini', name: 'GPT-4o Mini', provider: 'OpenAI' },
   
-  // Open Source / Other Providers
-  { id: 'llama3-70b-8192', name: 'Llama 3 70B (Groq)' },
-  { id: 'mixtral-8x7b-32768', name: 'Mixtral 8x7B (Groq)' },
-  { id: 'deepseek-coder', name: 'DeepSeek Coder' },
-  { id: 'deepseek-chat', name: 'DeepSeek Chat' },
+  // Anthropic
+  { id: 'claude-4-5-opus-20251126', name: 'Claude 4.5 Opus (Nov 2025)', provider: 'Anthropic' },
+  { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet', provider: 'Anthropic' },
+  { id: 'claude-3-5-haiku-20241022', name: 'Claude 3.5 Haiku', provider: 'Anthropic' },
+  { id: 'claude-3-opus-latest', name: 'Claude 3 Opus', provider: 'Anthropic' },
   
-  // Local (Ollama defaults)
-  { id: 'llama3', name: 'Llama 3 (Local)' },
-  { id: 'mistral', name: 'Mistral (Local)' },
+  // Google
+  { id: 'gemini-1.5-pro-latest', name: 'Gemini 1.5 Pro', provider: 'Google' },
+  { id: 'gemini-1.5-flash-latest', name: 'Gemini 1.5 Flash', provider: 'Google' },
+  
+  // Open Source / DeepSeek
+  { id: 'deepseek-chat', name: 'DeepSeek V3', provider: 'DeepSeek' },
+  { id: 'deepseek-coder', name: 'DeepSeek Coder V2', provider: 'DeepSeek' },
+  { id: 'llama-3.2-90b-vision', name: 'Llama 3.2 90B', provider: 'Meta' },
+  { id: 'mixtral-8x22b', name: 'Mixtral 8x22B', provider: 'Mistral' },
 ];
 
 export const DEFAULT_SETTINGS = {
