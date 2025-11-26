@@ -13,14 +13,35 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
   const [localSettings, setLocalSettings] = useState<AppSettings>(settings);
   const [isCustomModel, setIsCustomModel] = useState(false);
 
+  // Sync state when modal opens
   useEffect(() => {
-    setLocalSettings(settings);
-    // Check if the current model is in our known list. If not, it's a custom model.
-    const isKnown = AVAILABLE_MODELS.some(m => m.id === settings.model);
-    setIsCustomModel(!isKnown);
+    if (isOpen) {
+      setLocalSettings(settings);
+      const isKnown = AVAILABLE_MODELS.some(m => m.id === settings.model);
+      setIsCustomModel(!isKnown);
+    }
   }, [settings, isOpen]);
 
-  if (!isOpen) return null;
+  // Handle URL change to auto-load saved key
+  const handleUrlChange = (newUrl: string) => {
+    const savedKey = localSettings.keyMap?.[newUrl] || '';
+    setLocalSettings(prev => ({
+      ...prev,
+      apiUrl: newUrl,
+      apiKey: savedKey
+    }));
+  };
+
+  const handleKeyChange = (newKey: string) => {
+    setLocalSettings(prev => ({
+      ...prev,
+      apiKey: newKey,
+      keyMap: {
+        ...prev.keyMap,
+        [prev.apiUrl]: newKey
+      }
+    }));
+  };
 
   const handleSave = () => {
     onSave(localSettings);
@@ -28,7 +49,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
   };
 
   const applyPreset = (preset: { url: string, name: string }) => {
-      setLocalSettings(prev => ({ ...prev, apiUrl: preset.url }));
+      handleUrlChange(preset.url);
   };
 
   const handleModelChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -42,12 +63,15 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
       }
   };
 
-  // Group models by provider for the dropdown
   const groupedModels = AVAILABLE_MODELS.reduce((acc, model) => {
       if (!acc[model.provider]) acc[model.provider] = [];
       acc[model.provider].push(model);
       return acc;
   }, {} as Record<string, typeof AVAILABLE_MODELS>);
+
+  const isO1Model = localSettings.model.startsWith('o1');
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
@@ -56,7 +80,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
         <div className="flex justify-between items-center p-6 border-b border-gray-800">
           <h2 className="text-xl font-semibold text-white flex items-center gap-2">
             <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-            API Configuration
+            Configuration
           </h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white transition">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
@@ -68,13 +92,17 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
           
           {/* Presets */}
           <div className="space-y-2">
-            <label className="block text-xs font-medium text-gray-400 uppercase tracking-wider">Quick Connect Presets</label>
+            <label className="block text-xs font-medium text-gray-400 uppercase tracking-wider">Provider Presets</label>
             <div className="flex flex-wrap gap-2">
               {Object.values(API_PRESETS).map((preset) => (
                 <button
                   key={preset.name}
                   onClick={() => applyPreset(preset)}
-                  className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-xs text-gray-200 border border-gray-700 hover:border-blue-500 rounded-md transition"
+                  className={`px-3 py-1.5 text-xs border rounded-md transition ${
+                    localSettings.apiUrl === preset.url 
+                    ? 'bg-blue-600 border-blue-500 text-white' 
+                    : 'bg-gray-800 text-gray-200 border-gray-700 hover:border-gray-500'
+                  }`}
                 >
                   {preset.name}
                 </button>
@@ -89,63 +117,76 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                     <input
                     type="text"
                     value={localSettings.apiUrl}
-                    onChange={(e) => setLocalSettings({ ...localSettings, apiUrl: e.target.value })}
+                    onChange={(e) => handleUrlChange(e.target.value)}
                     placeholder="https://api.openai.com/v1/chat/completions"
                     className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-4 pr-10 py-2.5 text-white text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
                     />
-                    <div className="absolute right-3 top-2.5 text-gray-500 pointer-events-none">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" /></svg>
-                    </div>
                 </div>
-                <p className="text-[10px] text-gray-500 mt-1">Must be an OpenAI-compatible endpoint. Usually ends in <code className="bg-gray-800 px-1 rounded">/v1/chat/completions</code></p>
             </div>
 
             <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">API Key</label>
+                <label className="block text-sm font-medium text-gray-300 mb-1">
+                    API Key
+                    <span className="ml-2 text-[10px] text-green-400 font-normal bg-green-900/30 px-2 py-0.5 rounded">
+                        Autosaved for this URL
+                    </span>
+                </label>
                 <input
                 type="password"
                 value={localSettings.apiKey}
-                onChange={(e) => setLocalSettings({ ...localSettings, apiKey: e.target.value })}
-                placeholder="sk-..."
+                onChange={(e) => handleKeyChange(e.target.value)}
+                placeholder={localSettings.apiUrl.includes('google') ? 'AIza...' : 'sk-...'}
                 className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
                 />
-                <p className="text-[10px] text-gray-500 mt-1">Stored locally. Leave empty for local models.</p>
             </div>
 
-            <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">AI Model</label>
-                <div className="flex flex-col gap-2">
-                    <select
-                        value={isCustomModel ? 'custom_input_option' : localSettings.model}
-                        onChange={handleModelChange}
-                        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                    >
-                        {Object.entries(groupedModels).map(([provider, models]) => (
-                            <optgroup key={provider} label={provider}>
-                                {models.map(m => (
-                                    <option key={m.id} value={m.id}>{m.name}</option>
-                                ))}
-                            </optgroup>
-                        ))}
-                        <option value="custom_input_option">+ Custom Model ID</option>
-                    </select>
-
-                    {/* Custom Model Input - Visible if 'Custom' is selected or model is unknown */}
-                    {isCustomModel && (
-                        <div className="animate-fade-in mt-1">
-                             <input 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">AI Model</label>
+                    <div className="flex flex-col gap-2">
+                        <select
+                            value={isCustomModel ? 'custom_input_option' : localSettings.model}
+                            onChange={handleModelChange}
+                            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                        >
+                            {Object.entries(groupedModels).map(([provider, models]) => (
+                                <optgroup key={provider} label={provider}>
+                                    {models.map(m => (
+                                        <option key={m.id} value={m.id}>{m.name}</option>
+                                    ))}
+                                </optgroup>
+                            ))}
+                            <option value="custom_input_option">+ Custom Model ID</option>
+                        </select>
+                        {isCustomModel && (
+                            <input 
                                 type="text" 
-                                placeholder="Enter specific model ID (e.g. gpt-5-turbo)"
-                                className="w-full bg-gray-900 border border-blue-500/50 rounded-lg px-4 py-2.5 text-white text-sm font-mono placeholder-gray-600 focus:ring-1 focus:ring-blue-500 outline-none"
+                                placeholder="Enter specific model ID"
+                                className="w-full bg-gray-900 border border-blue-500/50 rounded-lg px-4 py-2 text-white text-sm font-mono"
                                 onChange={(e) => setLocalSettings({...localSettings, model: e.target.value})}
                                 value={localSettings.model}
-                                autoFocus
                             />
-                            <p className="text-[10px] text-blue-400/80 mt-1.5 ml-1">
-                                Enter the exact Model ID from your provider's documentation (e.g. <code>anthropic/claude-3-opus</code> for OpenRouter).
-                            </p>
-                        </div>
-                    )}
+                        )}
+                    </div>
+                </div>
+
+                <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                        Temperature: <span className="text-blue-400 font-mono">{isO1Model ? '1.0 (Fixed)' : localSettings.temperature}</span>
+                    </label>
+                    <div className="flex items-center gap-2 h-[42px]">
+                        <input 
+                            type="range"
+                            min="0"
+                            max="2"
+                            step="0.1"
+                            disabled={isO1Model}
+                            value={localSettings.temperature}
+                            onChange={(e) => setLocalSettings({...localSettings, temperature: parseFloat(e.target.value)})}
+                            className={`w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer ${isO1Model ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        />
+                    </div>
+                    {isO1Model && <p className="text-[10px] text-yellow-500 mt-1">o1 models require temperature 1</p>}
                 </div>
             </div>
             
