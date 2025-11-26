@@ -58,13 +58,18 @@ export class UniversalLLMService {
         headers['Authorization'] = `Bearer ${settings.apiKey}`;
       }
 
+      // Special handling for o1 models which require specific temperature
+      // Some providers reject requests if temperature is not 1 for reasoning models
+      const isO1 = settings.model.startsWith('o1');
+      const finalTemperature = isO1 ? 1 : settings.temperature;
+
       const response = await fetch(finalUrl, {
         method: 'POST',
         headers: headers,
         body: JSON.stringify({
           model: settings.model,
           messages: apiMessages,
-          temperature: settings.temperature,
+          temperature: finalTemperature,
           stream: true
         })
       });
