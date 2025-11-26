@@ -17,6 +17,8 @@ export interface AppSettings {
   model: string;
   systemPrompt: string;
   temperature: number;
+  // Dictionary to store keys per provider URL: { "https://api.openai.com...": "sk-..." }
+  keyMap: Record<string, string>;
 }
 
 export interface ChatSession {
