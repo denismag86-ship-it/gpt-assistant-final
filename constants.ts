@@ -6,7 +6,7 @@ export const API_PRESETS = {
   },
   GOOGLE: {
     name: "Google Gemini",
-    url: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
+    url: "https://generativelanguage.googleapis.com/v1/openai/chat/completions"
   },
   OPENROUTER: {
     name: "OpenRouter",
