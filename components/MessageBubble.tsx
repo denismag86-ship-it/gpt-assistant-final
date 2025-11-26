@@ -5,7 +5,7 @@ interface MessageBubbleProps {
   message: Message;
 }
 
-// Simple helper to parse code blocks manually to avoid heavy dependencies
+// Code Block Renderer
 const CodeBlock: React.FC<{ code: string; language?: string }> = ({ code, language }) => {
   const [copied, setCopied] = React.useState(false);
 
@@ -40,32 +40,95 @@ const CodeBlock: React.FC<{ code: string; language?: string }> = ({ code, langua
   );
 };
 
-// Custom renderer that splits text by code blocks
+// Multimedia / Text Renderer
+// Splits content by Code Blocks first, then parses Media/Links in the text chunks
+const TextWithMedia: React.FC<{ text: string }> = ({ text }) => {
+    // Regex to match Markdown Images: ![alt](url)
+    const imageRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
+    
+    // We also want to render HTML tags if the model outputs them directly (some do for audio/video)
+    // Note: Parsing raw HTML is risky, but for a dev tool connected to LLMs, we allow specific tags.
+    // For safety in this regex-based approach, we treat them as separate blocks if they are on their own lines roughly.
+    // However, expanding regex for HTML attributes is flaky.
+    
+    // Strategy: Split by Markdown Image syntax first.
+    
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = imageRegex.exec(text)) !== null) {
+        // Text before the image
+        if (match.index > lastIndex) {
+            parts.push({ type: 'text', content: text.slice(lastIndex, match.index) });
+        }
+        // The image
+        parts.push({ type: 'image', alt: match[1], src: match[2] });
+        lastIndex = imageRegex.lastIndex;
+    }
+    // Remaining text
+    if (lastIndex < text.length) {
+        parts.push({ type: 'text', content: text.slice(lastIndex) });
+    }
+
+    return (
+        <>
+            {parts.map((part, i) => {
+                if (part.type === 'image') {
+                    return (
+                        <div key={i} className="my-3">
+                            <img 
+                                src={part.src} 
+                                alt={part.alt} 
+                                className="rounded-lg max-h-80 border border-gray-700 shadow-md"
+                                loading="lazy"
+                            />
+                        </div>
+                    );
+                }
+                
+                // For text parts, we do a naive check for HTML audio/video strings if they look complete
+                // This is a basic implementation to support "output video/audio"
+                return (
+                    <span key={i} className="whitespace-pre-wrap">
+                        {part.content?.split('\n').map((line, j) => {
+                           // Simple heuristic: if line starts with <audio and ends with </audio> or />
+                           if (line.trim().startsWith('<audio') && line.includes('src=')) {
+                               const srcMatch = line.match(/src="([^"]+)"/);
+                               if (srcMatch) return <audio key={j} controls src={srcMatch[1]} className="my-2 w-full" />;
+                           }
+                           if (line.trim().startsWith('<video') && line.includes('src=')) {
+                               const srcMatch = line.match(/src="([^"]+)"/);
+                               if (srcMatch) return <video key={j} controls src={srcMatch[1]} className="my-2 w-full max-h-80 rounded" />;
+                           }
+                           return <React.Fragment key={j}>{line}{j < part.content!.split('\n').length - 1 && '\n'}</React.Fragment>;
+                        })}
+                    </span>
+                );
+            })}
+        </>
+    );
+};
+
+
 const ContentRenderer: React.FC<{ content: string }> = ({ content }) => {
+  // 1. Split by Code Blocks
   const parts = content.split(/```(\w*)\n([\s\S]*?)```/g);
 
   return (
     <div className="prose prose-invert max-w-none text-base leading-7">
       {parts.map((part, index) => {
-        // If index % 3 === 0, it's normal text
-        // If index % 3 === 1, it's the language (captured group 1)
-        // If index % 3 === 2, it's the code (captured group 2)
-        
         if (index % 3 === 0) {
-            // Render text with basic paragraph handling
+            // Normal Text (potentially containing media)
             if (!part.trim()) return null;
             return (
-                <div key={index} className="whitespace-pre-wrap mb-2">
-                    {part}
+                <div key={index} className="mb-2">
+                    <TextWithMedia text={part} />
                 </div>
             )
         }
         
-        // This is the language part, we skip rendering it directly, 
-        // it will be used by the next iteration (the code part) theoretically, 
-        // but our split logic structure means:
-        // [text, lang, code, text, lang, code...]
-        if (index % 3 === 1) return null;
+        if (index % 3 === 1) return null; // Language identifier, skipped
 
         // Code block
         const language = parts[index - 1];
@@ -93,7 +156,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
         {/* Content */}
         <div className={`flex-1 min-w-0 ${isUser ? 'text-right' : 'text-left'}`}>
             <div className={`text-xs text-gray-500 mb-1`}>
-                {isUser ? 'You' : 'Assistant'}
+                {isUser ? 'You' : message.role === Role.System ? 'System' : 'Assistant'}
             </div>
             <div className={`inline-block w-full text-left rounded-2xl p-4 ${
                 isUser 
