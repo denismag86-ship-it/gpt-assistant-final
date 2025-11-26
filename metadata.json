@@ -1,5 +1,5 @@
 {
-  "name": "OhMyGPT Code Assistant",
-  "description": "A professional chat interface optimized for handling long messages and code generation using the OhMyGPT API.",
+  "name": "Universal AI Client",
+  "description": "A professional, universal chat interface compatible with OpenAI, Anthropic, Groq, Ollama, and OhMyGPT APIs.",
   "requestFramePermissions": []
 }
