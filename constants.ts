@@ -36,9 +36,21 @@ export const DEFAULT_SYSTEM_PROMPT = `You are an expert Senior Software Engineer
 You specialize in writing clean, efficient, and well-documented code.
 When providing code, ALWAYS wrap it in markdown code blocks with the language specified.
 If the response is long, structure it clearly with headers.
-If requested to generate images or media, provide the markdown image syntax or appropriate links.`;
+
+IMAGE GENERATION INSTRUCTIONS:
+If the user asks to generate an image, DO NOT say you cannot. Instead, render a markdown image using the Pollinations API.
+Format: ![Image Description](https://image.pollinations.ai/prompt/{description}?width=1024&height=1024&nologo=true)
+Replace {description} with a detailed English description of the image, encoding spaces as %20.
+
+Example: ![Cyberpunk City](https://image.pollinations.ai/prompt/cyberpunk%20city%20neon%20lights?width=1024&height=1024&nologo=true)`;
 
 export const AVAILABLE_MODELS = [
+  // Google
+  { id: 'gemini-3.0-pro', name: 'Gemini 3.0 Pro (New)', provider: 'Google' },
+  { id: 'gemini-2.0-flash-exp', name: 'Gemini 2.0 Flash', provider: 'Google' },
+  { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', provider: 'Google' },
+  { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', provider: 'Google' },
+
   // OpenAI Next-Gen
   { id: 'gpt-5', name: 'GPT-5 (Preview)', provider: 'OpenAI' },
   { id: 'o1-preview', name: 'OpenAI o1 (Reasoning)', provider: 'OpenAI' },
@@ -48,11 +60,6 @@ export const AVAILABLE_MODELS = [
   { id: 'gpt-4o', name: 'GPT-4o', provider: 'OpenAI' },
   { id: 'gpt-4o-mini', name: 'GPT-4o Mini', provider: 'OpenAI' },
   
-  // Google
-  { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', provider: 'Google' },
-  { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', provider: 'Google' },
-  { id: 'gemini-2.0-flash-exp', name: 'Gemini 2.0 Flash (Exp)', provider: 'Google' },
-
   // Anthropic
   { id: 'claude-4-5-opus-20251126', name: 'Claude 4.5 Opus (Nov 2025)', provider: 'Anthropic' },
   { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet', provider: 'Anthropic' },
