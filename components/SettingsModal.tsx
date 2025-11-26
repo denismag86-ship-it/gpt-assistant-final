@@ -11,9 +11,13 @@ interface SettingsModalProps {
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onSave }) => {
   const [localSettings, setLocalSettings] = useState<AppSettings>(settings);
+  const [isCustomModel, setIsCustomModel] = useState(false);
 
   useEffect(() => {
     setLocalSettings(settings);
+    // Check if the current model is in our known list. If not, it's a custom model.
+    const isKnown = AVAILABLE_MODELS.some(m => m.id === settings.model);
+    setIsCustomModel(!isKnown);
   }, [settings, isOpen]);
 
   if (!isOpen) return null;
@@ -26,6 +30,24 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
   const applyPreset = (preset: { url: string, name: string }) => {
       setLocalSettings(prev => ({ ...prev, apiUrl: preset.url }));
   };
+
+  const handleModelChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+      const val = e.target.value;
+      if (val === 'custom_input_option') {
+          setIsCustomModel(true);
+          setLocalSettings(prev => ({ ...prev, model: '' }));
+      } else {
+          setIsCustomModel(false);
+          setLocalSettings(prev => ({ ...prev, model: val }));
+      }
+  };
+
+  // Group models by provider for the dropdown
+  const groupedModels = AVAILABLE_MODELS.reduce((acc, model) => {
+      if (!acc[model.provider]) acc[model.provider] = [];
+      acc[model.provider].push(model);
+      return acc;
+  }, {} as Record<string, typeof AVAILABLE_MODELS>);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
@@ -87,36 +109,44 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                 placeholder="sk-..."
                 className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
                 />
-                <p className="text-[10px] text-gray-500 mt-1">Stored locally in your browser. Leave empty for some local models.</p>
+                <p className="text-[10px] text-gray-500 mt-1">Stored locally. Leave empty for local models.</p>
             </div>
 
             <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Model Name</label>
-                <div className="flex gap-2">
+                <label className="block text-sm font-medium text-gray-300 mb-1">AI Model</label>
+                <div className="flex flex-col gap-2">
                     <select
-                    value={AVAILABLE_MODELS.find(m => m.id === localSettings.model) ? localSettings.model : 'custom'}
-                    onChange={(e) => {
-                        const val = e.target.value;
-                        if (val !== 'custom') setLocalSettings({ ...localSettings, model: val });
-                    }}
-                    className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                        value={isCustomModel ? 'custom_input_option' : localSettings.model}
+                        onChange={handleModelChange}
+                        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none"
                     >
-                    {AVAILABLE_MODELS.map(m => (
-                        <option key={m.id} value={m.id}>{m.name}</option>
-                    ))}
-                    <option value="custom">Custom ID...</option>
+                        {Object.entries(groupedModels).map(([provider, models]) => (
+                            <optgroup key={provider} label={provider}>
+                                {models.map(m => (
+                                    <option key={m.id} value={m.id}>{m.name}</option>
+                                ))}
+                            </optgroup>
+                        ))}
+                        <option value="custom_input_option">+ Custom Model ID</option>
                     </select>
+
+                    {/* Custom Model Input - Visible if 'Custom' is selected or model is unknown */}
+                    {isCustomModel && (
+                        <div className="animate-fade-in mt-1">
+                             <input 
+                                type="text" 
+                                placeholder="Enter specific model ID (e.g. gpt-5-turbo)"
+                                className="w-full bg-gray-900 border border-blue-500/50 rounded-lg px-4 py-2.5 text-white text-sm font-mono placeholder-gray-600 focus:ring-1 focus:ring-blue-500 outline-none"
+                                onChange={(e) => setLocalSettings({...localSettings, model: e.target.value})}
+                                value={localSettings.model}
+                                autoFocus
+                            />
+                            <p className="text-[10px] text-blue-400/80 mt-1.5 ml-1">
+                                Enter the exact Model ID from your provider's documentation (e.g. <code>anthropic/claude-3-opus</code> for OpenRouter).
+                            </p>
+                        </div>
+                    )}
                 </div>
-                {/* Custom Model Input - Always visible if custom selected or model not in list */}
-                {(!AVAILABLE_MODELS.find(m => m.id === localSettings.model) || AVAILABLE_MODELS.find(m => m.id === localSettings.model) === undefined) && (
-                    <input 
-                        type="text" 
-                        placeholder="e.g. dolphin-mixtral"
-                        className="mt-2 w-full bg-gray-800 border border-blue-500/50 rounded-lg px-4 py-2 text-white text-sm animate-fade-in"
-                        onChange={(e) => setLocalSettings({...localSettings, model: e.target.value})}
-                        value={localSettings.model}
-                    />
-                )}
             </div>
             
             <div>
