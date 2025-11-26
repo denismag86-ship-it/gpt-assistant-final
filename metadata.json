@@ -1,0 +1,5 @@
+{
+  "name": "OhMyGPT Code Assistant",
+  "description": "A professional chat interface optimized for handling long messages and code generation using the OhMyGPT API.",
+  "requestFramePermissions": []
+}
