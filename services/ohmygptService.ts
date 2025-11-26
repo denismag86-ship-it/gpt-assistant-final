@@ -30,13 +30,19 @@ export class UniversalLLMService {
         finalUrl = finalUrl.slice(0, -1);
       }
 
-      // If user provided a base domain (e.g., api.openai.com), try to help them
-      // But don't break if they provided a full path
+      // Logic to auto-append paths if user provided a Base URL
       if (!finalUrl.endsWith('/chat/completions')) {
-         if (finalUrl.endsWith('/v1')) {
+         // Special handling for Google Gemini OpenAI compatibility
+         // Google uses /v1beta/openai/chat/completions or /v1/openai/chat/completions
+         // We should NOT append /v1 if 'openai' is already in the path
+         if (finalUrl.includes('googleapis.com') && finalUrl.includes('/openai')) {
+             finalUrl += '/chat/completions';
+         } 
+         // Standard OpenAI-like endpoints
+         else if (finalUrl.endsWith('/v1')) {
             finalUrl += '/chat/completions';
          } else if (!finalUrl.includes('/v1/')) {
-            // Assume it's a base URL
+            // Assume it's a generic base URL that needs standard suffix
             finalUrl += '/v1/chat/completions';
          }
          console.log(`Auto-corrected API URL to: ${finalUrl}`);
