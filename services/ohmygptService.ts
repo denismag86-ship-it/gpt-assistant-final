@@ -1,8 +1,8 @@
 import { AppSettings, Message, Role, StreamChunk } from '../types';
 
-export class OhMyGPTService {
+export class UniversalLLMService {
   /**
-   * Streams a chat completion from the configured API.
+   * Streams a chat completion from any OpenAI-compatible API.
    */
   static async streamChat(
     messages: Message[],
@@ -12,12 +12,34 @@ export class OhMyGPTService {
     onError: (error: Error) => void
   ): Promise<void> {
     try {
-      if (!settings.apiKey) {
+      // Allow empty API Key for local models (Ollama often doesn't need one)
+      const isLocalhost = settings.apiUrl.includes('localhost') || settings.apiUrl.includes('127.0.0.1');
+      if (!settings.apiKey && !isLocalhost) {
         throw new Error("API Key is missing. Please configure it in settings.");
       }
 
       if (!settings.apiUrl) {
         throw new Error("API URL is missing. Please check settings.");
+      }
+
+      // --- SMART URL FIXER ---
+      let finalUrl = settings.apiUrl.trim();
+      
+      // Basic normalization
+      if (finalUrl.endsWith('/')) {
+        finalUrl = finalUrl.slice(0, -1);
+      }
+
+      // If user provided a base domain (e.g., api.openai.com), try to help them
+      // But don't break if they provided a full path
+      if (!finalUrl.endsWith('/chat/completions')) {
+         if (finalUrl.endsWith('/v1')) {
+            finalUrl += '/chat/completions';
+         } else if (!finalUrl.includes('/v1/')) {
+            // Assume it's a base URL
+            finalUrl += '/v1/chat/completions';
+         }
+         console.log(`Auto-corrected API URL to: ${finalUrl}`);
       }
 
       // Format messages for the API
@@ -26,14 +48,19 @@ export class OhMyGPTService {
         ...messages.map(m => ({ role: m.role, content: m.content }))
       ];
 
-      console.log(`Connecting to: ${settings.apiUrl} with model: ${settings.model}`);
+      console.log(`Connecting to: ${finalUrl} with model: ${settings.model}`);
 
-      const response = await fetch(settings.apiUrl, {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (settings.apiKey) {
+        headers['Authorization'] = `Bearer ${settings.apiKey}`;
+      }
+
+      const response = await fetch(finalUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${settings.apiKey}`
-        },
+        headers: headers,
         body: JSON.stringify({
           model: settings.model,
           messages: apiMessages,
@@ -44,13 +71,24 @@ export class OhMyGPTService {
 
       if (!response.ok) {
         let errorMessage = `API Error: ${response.status} ${response.statusText}`;
+        
+        // --- ROBUST ERROR HANDLING ---
         try {
-            const errorData = await response.json();
-            if (errorData?.error?.message) {
-                errorMessage = `API Error: ${errorData.error.message}`;
+            const textBody = await response.text();
+            try {
+                const errorData = JSON.parse(textBody);
+                if (errorData?.error?.message) {
+                    errorMessage = `Provider Error: ${errorData.error.message}`;
+                } else if (errorData?.message) {
+                    errorMessage = `Provider Error: ${errorData.message}`;
+                }
+            } catch (e) {
+                // If HTML (Cloudflare, Proxy errors)
+                const cleanText = textBody.replace(/<[^>]*>?/gm, ' ').slice(0, 150);
+                errorMessage = `Network Error (${response.status}): ${cleanText}...`;
             }
         } catch (e) {
-            // Cannot parse error json, stick to status text
+            // Fallback
         }
         throw new Error(errorMessage);
       }
@@ -71,7 +109,6 @@ export class OhMyGPTService {
         buffer += chunk;
 
         const lines = buffer.split("\n");
-        // Keep the last partial line in the buffer
         buffer = lines.pop() || "";
 
         for (const line of lines) {
@@ -91,7 +128,7 @@ export class OhMyGPTService {
               onChunk(content);
             }
           } catch (e) {
-            console.warn("Failed to parse stream chunk", e);
+            // Some providers send Keep-Alive comments or other noise
           }
         }
       }
@@ -99,8 +136,8 @@ export class OhMyGPTService {
       onComplete();
 
     } catch (error) {
-      console.error("OhMyGPT API Error:", error);
-      onError(error instanceof Error ? error : new Error("Unknown error occurred. Check console for details."));
+      console.error("Universal LLM Error:", error);
+      onError(error instanceof Error ? error : new Error("Unknown error occurred."));
     }
   }
 }
