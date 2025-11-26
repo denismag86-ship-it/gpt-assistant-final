@@ -1,5 +1,5 @@
 {
   "name": "Universal AI Client",
-  "description": "A professional, universal chat interface compatible with OpenAI, Anthropic, Groq, Ollama, and OhMyGPT APIs.",
+  "description": "A professional, universal chat interface compatible with OpenAI, Anthropic, Groq, Ollama, Polza AI, and OpenRouter APIs.",
   "requestFramePermissions": []
 }
