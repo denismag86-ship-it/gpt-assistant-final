@@ -1,8 +1,8 @@
-import { AppSettings, Message, Role, StreamChunk } from '../types';
+import { AppSettings, Message, StreamChunk } from '../types';
 
 export class UniversalLLMService {
   /**
-   * Streams a chat completion from any OpenAI-compatible API.
+   * Streams chat completion from any OpenAI-compatible API
    */
   static async streamChat(
     messages: Message[],
@@ -12,95 +12,110 @@ export class UniversalLLMService {
     onError: (error: Error) => void
   ): Promise<void> {
     try {
-      // Allow empty API Key for local models (Ollama often doesn't need one)
       const isLocalhost = settings.apiUrl.includes('localhost') || settings.apiUrl.includes('127.0.0.1');
       if (!settings.apiKey && !isLocalhost) {
-        throw new Error("API Key is missing. Please configure it in settings.");
+        throw new Error("API Key is required. Please configure it in settings.");
       }
 
       if (!settings.apiUrl) {
-        throw new Error("API URL is missing. Please check settings.");
+        throw new Error("API URL is missing.");
       }
 
-      // --- SMART URL FIXER ---
+      // Smart URL normalization
       let finalUrl = settings.apiUrl.trim();
-      
-      // Basic normalization
       if (finalUrl.endsWith('/')) {
         finalUrl = finalUrl.slice(0, -1);
       }
 
-      // Logic to auto-append paths if user provided a Base URL
+      // Auto-append correct endpoint based on provider
       if (!finalUrl.endsWith('/chat/completions')) {
-         // Special handling for Google Gemini OpenAI compatibility
-         // Google uses /v1beta/openai/chat/completions or /v1/openai/chat/completions
-         // We should NOT append /v1 if 'openai' is already in the path
-         if (finalUrl.includes('googleapis.com') && finalUrl.includes('/openai')) {
-             finalUrl += '/chat/completions';
-         } 
-         // Standard OpenAI-like endpoints
-         else if (finalUrl.endsWith('/v1')) {
-            finalUrl += '/chat/completions';
-         } else if (!finalUrl.includes('/v1/')) {
-            // Assume it's a generic base URL that needs standard suffix
-            finalUrl += '/v1/chat/completions';
-         }
-         console.log(`Auto-corrected API URL to: ${finalUrl}`);
+        if (finalUrl.includes('googleapis.com')) {
+          if (!finalUrl.includes('/openai')) {
+            finalUrl += '/v1beta/openai';
+          }
+          finalUrl += '/chat/completions';
+        } else if (finalUrl.includes('anthropic.com')) {
+          finalUrl = finalUrl.replace(/\/chat\/completions$/, '');
+          finalUrl += '/messages';
+        } else if (finalUrl.endsWith('/v1')) {
+          finalUrl += '/chat/completions';
+        } else if (!finalUrl.includes('/v1/')) {
+          finalUrl += '/v1/chat/completions';
+        }
+        console.log(`✓ Auto-corrected API URL: ${finalUrl}`);
       }
 
-      // Format messages for the API
+      // Format messages with system prompt
       const apiMessages = [
-        { role: Role.System, content: settings.systemPrompt },
+        { role: 'system', content: settings.systemPrompt || 'You are a helpful assistant.' },
         ...messages.map(m => ({ role: m.role, content: m.content }))
       ];
 
-      console.log(`Connecting to: ${finalUrl} with model: ${settings.model}`);
+      console.log(`→ Connecting to: ${finalUrl}`);
+      console.log(`→ Model: ${settings.model}`);
 
+      // Prepare headers
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
-      
-      if (settings.apiKey) {
+
+      let fetchUrl = finalUrl;
+      const isGoogle = finalUrl.includes('googleapis.com');
+      const isAnthropic = finalUrl.includes('anthropic.com');
+
+      // Google: API key in query parameter (CORS workaround)
+      if (isGoogle && settings.apiKey) {
+        const separator = fetchUrl.includes('?') ? '&' : '?';
+        fetchUrl = `${fetchUrl}${separator}key=${settings.apiKey}`;
+      }
+      // Anthropic: special header format
+      else if (isAnthropic && settings.apiKey) {
+        headers['x-api-key'] = settings.apiKey;
+        headers['anthropic-version'] = '2023-06-01';
+      }
+      // Standard: Bearer token
+      else if (settings.apiKey) {
         headers['Authorization'] = `Bearer ${settings.apiKey}`;
       }
 
-      // Special handling for o1 models which require specific temperature
-      // Some providers reject requests if temperature is not 1 for reasoning models
-      const isO1 = settings.model.startsWith('o1');
-      const finalTemperature = isO1 ? 1 : settings.temperature;
+      // Handle temperature for reasoning models
+      const isReasoningModel = /^o[1-4]|thinking|reasoner/.test(settings.model);
+      const finalTemperature = isReasoningModel ? 1 : settings.temperature;
+      console.log(`→ Temperature: ${finalTemperature}`);
 
-      const response = await fetch(finalUrl, {
+      // Make request
+      const response = await fetch(fetchUrl, {
         method: 'POST',
-        headers: headers,
+        headers,
         body: JSON.stringify({
           model: settings.model,
           messages: apiMessages,
           temperature: finalTemperature,
-          stream: true
+          stream: true,
         })
       });
 
+      // Handle errors
       if (!response.ok) {
         let errorMessage = `API Error: ${response.status} ${response.statusText}`;
-        
-        // --- ROBUST ERROR HANDLING ---
+
         try {
-            const textBody = await response.text();
-            try {
-                const errorData = JSON.parse(textBody);
-                if (errorData?.error?.message) {
-                    errorMessage = `Provider Error: ${errorData.error.message}`;
-                } else if (errorData?.message) {
-                    errorMessage = `Provider Error: ${errorData.message}`;
-                }
-            } catch (e) {
-                // If HTML (Cloudflare, Proxy errors)
-                const cleanText = textBody.replace(/<[^>]*>?/gm, ' ').slice(0, 150);
-                errorMessage = `Network Error (${response.status}): ${cleanText}...`;
+          const textBody = await response.text();
+          try {
+            const errorData = JSON.parse(textBody);
+            if (errorData?.error?.message) {
+              errorMessage = `Provider Error: ${errorData.error.message}`;
+            } else if (errorData?.message) {
+              errorMessage = `Provider Error: ${errorData.message}`;
             }
+          } catch (e) {
+            const cleanText = textBody.replace(/<[^>]*>?/gm, ' ').slice(0, 200);
+            errorMessage = `Network Error (${response.status}): ${cleanText}...`;
+          }
         } catch (e) {
-            // Fallback
+          // Fallback
         }
+
         throw new Error(errorMessage);
       }
 
@@ -108,9 +123,10 @@ export class UniversalLLMService {
         throw new Error("Response body is empty");
       }
 
+      // Process stream
       const reader = response.body.getReader();
-      const decoder = new TextDecoder("utf-8");
-      let buffer = "";
+      const decoder = new TextDecoder('utf-8');
+      let buffer = '';
 
       while (true) {
         const { done, value } = await reader.read();
@@ -119,36 +135,36 @@ export class UniversalLLMService {
         const chunk = decoder.decode(value, { stream: true });
         buffer += chunk;
 
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
 
         for (const line of lines) {
           const trimmed = line.trim();
-          if (!trimmed || !trimmed.startsWith("data: ")) continue;
+          if (!trimmed || !trimmed.startsWith('data: ')) continue;
 
-          const dataStr = trimmed.replace("data: ", "");
-          if (dataStr === "[DONE]") {
+          const dataStr = trimmed.replace('data: ', '');
+          if (dataStr === '[DONE]') {
             onComplete();
             return;
           }
 
           try {
             const json: StreamChunk = JSON.parse(dataStr);
-            const content = json.choices[0]?.delta?.content;
+            const content = json.choices?.[0]?.delta?.content;
             if (content) {
               onChunk(content);
             }
           } catch (e) {
-            // Some providers send Keep-Alive comments or other noise
+            // Noise/keepalive from provider
           }
         }
       }
-      
+
       onComplete();
 
     } catch (error) {
-      console.error("Universal LLM Error:", error);
-      onError(error instanceof Error ? error : new Error("Unknown error occurred."));
+      console.error('✗ LLM Service Error:', error);
+      onError(error instanceof Error ? error : new Error('Unknown error occurred'));
     }
   }
 }
