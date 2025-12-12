@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import { useState, useEffect, FC, ChangeEvent } from 'react';
 import { AppSettings } from '../types';
 import { AVAILABLE_MODELS, API_PRESETS } from '../constants';
 
@@ -9,7 +10,7 @@ interface SettingsModalProps {
   onSave: (newSettings: AppSettings) => void;
 }
 
-const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onSave }) => {
+const SettingsModal: FC<SettingsModalProps> = ({ isOpen, onClose, settings, onSave }) => {
   const [localSettings, setLocalSettings] = useState<AppSettings>(settings);
   const [isCustomModel, setIsCustomModel] = useState(false);
 
@@ -52,7 +53,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
       handleUrlChange(preset.url);
   };
 
-  const handleModelChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleModelChange = (e: ChangeEvent<HTMLSelectElement>) => {
       const val = e.target.value;
       if (val === 'custom_input_option') {
           setIsCustomModel(true);
