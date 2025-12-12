@@ -1,25 +1,21 @@
 
 // Providers Presets
 export const API_PRESETS = {
-  OPENAI: {
-    name: "OpenAI",
-    url: "https://api.openai.com/v1/chat/completions"
+  GROQ: {
+    name: "Groq (Fast)",
+    url: "https://api.groq.com/openai/v1/chat/completions"
   },
   GOOGLE: {
     name: "Google Gemini",
     url: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
   },
-  GROQ: {
-    name: "Groq (Fast)",
-    url: "https://api.groq.com/openai/v1/chat/completions"
+  OPENAI: {
+    name: "OpenAI",
+    url: "https://api.openai.com/v1/chat/completions"
   },
   OPENROUTER: {
     name: "OpenRouter",
     url: "https://openrouter.ai/api/v1/chat/completions"
-  },
-  POLZA: {
-    name: "Polza AI",
-    url: "https://api.polza.ai/v1/chat/completions"
   },
   DEEPSEEK: {
     name: "DeepSeek",
@@ -31,7 +27,7 @@ export const API_PRESETS = {
   }
 };
 
-export const DEFAULT_API_URL = API_PRESETS.OPENAI.url;
+export const DEFAULT_API_URL = API_PRESETS.GROQ.url;
 
 export const DEFAULT_SYSTEM_PROMPT = `You are an expert Senior Software Engineer and Architect. 
 You specialize in writing clean, efficient, and well-documented code.
@@ -50,18 +46,18 @@ export const AVAILABLE_MODELS = [
   { id: 'gpt-5.2', name: 'GPT-5.2 Thinking (Recommended)', provider: 'OpenAI' },
   { id: 'gpt-5.2-chat-latest', name: 'GPT-5.2 Instant (Fast)', provider: 'OpenAI' },
 
-  // Google
-  { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', provider: 'Google' },
-  { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', provider: 'Google' },
-  { id: 'gemini-2.0-flash-exp', name: 'Gemini 2.0 Flash (Preview)', provider: 'Google' },
-  
-  // Groq (Latest Llama 3.3/3.2)
+  // Groq (Latest Llama 3.3/3.2) - Defaulting to versatile
   { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B (Groq)', provider: 'Groq' },
   { id: 'llama-3.2-90b-vision-preview', name: 'Llama 3.2 90B Vision (Groq)', provider: 'Groq' },
   { id: 'llama-3.1-70b-versatile', name: 'Llama 3.1 70B (Groq)', provider: 'Groq' },
   { id: 'llama-3.1-8b-instant', name: 'Llama 3.1 8B (Groq)', provider: 'Groq' },
   { id: 'mixtral-8x7b-32768', name: 'Mixtral 8x7B (Groq)', provider: 'Groq' },
   { id: 'gemma-2-9b-it', name: 'Gemma 2 9B (Groq)', provider: 'Groq' },
+
+  // Google
+  { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', provider: 'Google' },
+  { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', provider: 'Google' },
+  { id: 'gemini-2.0-flash-exp', name: 'Gemini 2.0 Flash (Preview)', provider: 'Google' },
 
   // OpenAI Current
   { id: 'gpt-4o', name: 'GPT-4o', provider: 'OpenAI' },
@@ -80,7 +76,7 @@ export const AVAILABLE_MODELS = [
 export const DEFAULT_SETTINGS = {
   apiKey: '',
   apiUrl: DEFAULT_API_URL,
-  model: 'gpt-5.2',
+  model: 'llama-3.3-70b-versatile', // Default to a working model
   systemPrompt: DEFAULT_SYSTEM_PROMPT,
   temperature: 0.7,
   keyMap: {}, 
