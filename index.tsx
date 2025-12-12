@@ -1,36 +1,17 @@
-export type Role = 'user' | 'assistant' | 'system';
 
-export interface Message {
-  role: Role;
-  content: string;
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import App from './App';
+import './index.css';
+
+const rootElement = document.getElementById('root');
+if (!rootElement) {
+  throw new Error("Could not find root element to mount to");
 }
 
-export interface AppSettings {
-  apiKey: string;
-  apiUrl: string;
-  model: string;
-  temperature: number;
-  systemPrompt?: string;
-  keyMap?: Record<string, string>;
-}
-
-export interface StreamChunk {
-  choices?: Array<{
-    delta?: {
-      content?: string;
-    };
-  }>;
-}
-
-export interface ApiPreset {
-  name: string;
-  url: string;
-  docs?: string;
-}
-
-export interface ModelInfo {
-  id: string;
-  name: string;
-  provider: string;
-  tier: 'flagship' | 'advanced' | 'standard' | 'mini' | 'reasoning' | 'coding' | 'vision';
-}
+const root = createRoot(rootElement);
+root.render(
+  <StrictMode>
+    <App />
+  </StrictMode>
+);
