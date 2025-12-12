@@ -1,4 +1,5 @@
-import React, { memo } from 'react';
+
+import { memo, useState, Fragment, FC } from 'react';
 import { Message, Role } from '../types';
 
 interface MessageBubbleProps {
@@ -6,8 +7,8 @@ interface MessageBubbleProps {
 }
 
 // Code Block Renderer
-const CodeBlock: React.FC<{ code: string; language?: string }> = ({ code, language }) => {
-  const [copied, setCopied] = React.useState(false);
+const CodeBlock: FC<{ code: string; language?: string }> = ({ code, language }) => {
+  const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(code);
@@ -41,17 +42,9 @@ const CodeBlock: React.FC<{ code: string; language?: string }> = ({ code, langua
 };
 
 // Multimedia / Text Renderer
-// Splits content by Code Blocks first, then parses Media/Links in the text chunks
-const TextWithMedia: React.FC<{ text: string }> = ({ text }) => {
+const TextWithMedia: FC<{ text: string }> = ({ text }) => {
     // Regex to match Markdown Images: ![alt](url)
     const imageRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
-    
-    // We also want to render HTML tags if the model outputs them directly (some do for audio/video)
-    // Note: Parsing raw HTML is risky, but for a dev tool connected to LLMs, we allow specific tags.
-    // For safety in this regex-based approach, we treat them as separate blocks if they are on their own lines roughly.
-    // However, expanding regex for HTML attributes is flaky.
-    
-    // Strategy: Split by Markdown Image syntax first.
     
     const parts = [];
     let lastIndex = 0;
@@ -87,12 +80,9 @@ const TextWithMedia: React.FC<{ text: string }> = ({ text }) => {
                     );
                 }
                 
-                // For text parts, we do a naive check for HTML audio/video strings if they look complete
-                // This is a basic implementation to support "output video/audio"
                 return (
                     <span key={i} className="whitespace-pre-wrap">
                         {part.content?.split('\n').map((line, j) => {
-                           // Simple heuristic: if line starts with <audio and ends with </audio> or />
                            if (line.trim().startsWith('<audio') && line.includes('src=')) {
                                const srcMatch = line.match(/src="([^"]+)"/);
                                if (srcMatch) return <audio key={j} controls src={srcMatch[1]} className="my-2 w-full" />;
@@ -101,7 +91,7 @@ const TextWithMedia: React.FC<{ text: string }> = ({ text }) => {
                                const srcMatch = line.match(/src="([^"]+)"/);
                                if (srcMatch) return <video key={j} controls src={srcMatch[1]} className="my-2 w-full max-h-80 rounded" />;
                            }
-                           return <React.Fragment key={j}>{line}{j < part.content!.split('\n').length - 1 && '\n'}</React.Fragment>;
+                           return <Fragment key={j}>{line}{j < part.content!.split('\n').length - 1 && '\n'}</Fragment>;
                         })}
                     </span>
                 );
@@ -111,7 +101,7 @@ const TextWithMedia: React.FC<{ text: string }> = ({ text }) => {
 };
 
 
-const ContentRenderer: React.FC<{ content: string }> = ({ content }) => {
+const ContentRenderer: FC<{ content: string }> = ({ content }) => {
   // 1. Split by Code Blocks
   const parts = content.split(/```(\w*)\n([\s\S]*?)```/g);
 
@@ -138,7 +128,7 @@ const ContentRenderer: React.FC<{ content: string }> = ({ content }) => {
   );
 };
 
-const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
+const MessageBubble: FC<MessageBubbleProps> = ({ message }) => {
   const isUser = message.role === Role.User;
 
   return (
