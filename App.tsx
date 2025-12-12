@@ -1,10 +1,9 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Message, Role, AppSettings } from './types';
 import { DEFAULT_SETTINGS } from './constants';
-// We import from the same file but the class inside is now UniversalLLMService
 import { UniversalLLMService } from './services/ohmygptService';
-import MessageBubble from './components/MessageBubble.tsx';
-import SettingsModal from './components/SettingsModal.tsx';
+import MessageBubble from './components/MessageBubble';
+import SettingsModal from './components/SettingsModal';
 
 const generateId = () => Math.random().toString(36).substring(2, 15);
 
@@ -18,10 +17,8 @@ const App: React.FC = () => {
     const saved = localStorage.getItem('universal-ai-settings'); 
     if (saved) {
         const parsed = JSON.parse(saved);
-        // Ensure keyMap exists for users upgrading from older version
         return { ...DEFAULT_SETTINGS, ...parsed, keyMap: parsed.keyMap || {} };
     }
-    // Fallback for migration from old app version
     const oldSaved = localStorage.getItem('ohmygpt-settings');
     if (oldSaved) {
         return { ...DEFAULT_SETTINGS, ...JSON.parse(oldSaved), keyMap: {} };
@@ -107,7 +104,7 @@ const App: React.FC = () => {
         setIsLoading(false);
         setMessages(prev => prev.map(msg => 
             msg.id === assistantMessageId 
-              ? { ...msg, content: `**Connection Error**\n\n${error.message}\n\n*Check your settings.*` }
+              ? { ...msg, content: `**Connection Error**\n\n${error.message}\n\n*Check your API Key and Model settings.*` }
               : msg
         ));
       }
@@ -171,8 +168,8 @@ const App: React.FC = () => {
               </div>
               <h2 className="text-2xl font-bold text-gray-200 mb-3">Connect your Model</h2>
               <p className="max-w-md text-gray-400 mb-8 leading-relaxed">
-                Connect to Google Gemini, OpenAI, Groq, DeepSeek, or run local models. 
-                Configure your provider settings to get started. Keys are saved automatically per provider.
+                Connect to Groq (Recommended), Google Gemini, OpenAI, or run local models. 
+                Configure your provider settings to get started.
               </p>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-sm">
@@ -180,7 +177,7 @@ const App: React.FC = () => {
                     <span className="w-2 h-2 rounded-full bg-blue-500"></span> Google Gemini
                   </button>
                   <button onClick={() => setIsSettingsOpen(true)} className="flex items-center justify-center gap-2 px-4 py-3 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-xl transition text-sm">
-                    <span className="w-2 h-2 rounded-full bg-green-500"></span> OpenAI / Groq
+                    <span className="w-2 h-2 rounded-full bg-orange-500"></span> Groq (Fast)
                   </button>
               </div>
             </div>
