@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+
+import { useState, useRef, useEffect, useCallback, KeyboardEvent, FC } from 'react';
 import { Message, Role, AppSettings } from './types';
 import { DEFAULT_SETTINGS } from './constants';
 import { UniversalLLMService } from './services/ohmygptService';
@@ -7,21 +8,26 @@ import SettingsModal from './components/SettingsModal';
 
 const generateId = () => Math.random().toString(36).substring(2, 15);
 
-const App: React.FC = () => {
+const App: FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   
+  // Safe initialization of settings
   const [settings, setSettings] = useState<AppSettings>(() => {
-    const saved = localStorage.getItem('universal-ai-settings'); 
-    if (saved) {
-        const parsed = JSON.parse(saved);
-        return { ...DEFAULT_SETTINGS, ...parsed, keyMap: parsed.keyMap || {} };
-    }
-    const oldSaved = localStorage.getItem('ohmygpt-settings');
-    if (oldSaved) {
-        return { ...DEFAULT_SETTINGS, ...JSON.parse(oldSaved), keyMap: {} };
+    try {
+        const saved = localStorage.getItem('universal-ai-settings'); 
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            return { ...DEFAULT_SETTINGS, ...parsed, keyMap: parsed.keyMap || {} };
+        }
+        const oldSaved = localStorage.getItem('ohmygpt-settings');
+        if (oldSaved) {
+            return { ...DEFAULT_SETTINGS, ...JSON.parse(oldSaved), keyMap: {} };
+        }
+    } catch (e) {
+        console.warn("Failed to parse settings, resetting to default", e);
     }
     return DEFAULT_SETTINGS;
   });
@@ -111,7 +117,7 @@ const App: React.FC = () => {
     );
   }, [input, isLoading, messages, settings]);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
