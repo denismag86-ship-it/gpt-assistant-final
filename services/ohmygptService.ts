@@ -15,7 +15,9 @@ export class UniversalLLMService {
     try {
       // Allow empty API Key for local models (Ollama often doesn't need one)
       const isLocalhost = settings.apiUrl.includes('localhost') || settings.apiUrl.includes('127.0.0.1');
-      if (!settings.apiKey && !isLocalhost) {
+      const apiKey = settings.apiKey ? settings.apiKey.trim() : '';
+
+      if (!apiKey && !isLocalhost) {
         throw new Error("API Key is missing. Please configure it in settings.");
       }
 
@@ -66,12 +68,14 @@ export class UniversalLLMService {
       let fetchUrl = finalUrl;
       const isGoogle = finalUrl.includes('googleapis.com');
 
-      if (isGoogle && settings.apiKey) {
+      if (isGoogle && apiKey) {
           const separator = fetchUrl.includes('?') ? '&' : '?';
-          fetchUrl = `${fetchUrl}${separator}key=${settings.apiKey}`;
-      } else if (settings.apiKey) {
-          // Standard Bearer Token for everyone else
-          headers['Authorization'] = `Bearer ${settings.apiKey}`;
+          fetchUrl = `${fetchUrl}${separator}key=${apiKey}`;
+          // CRITICAL: Google will fail CORS preflight if Authorization header is present when key is in URL
+          delete headers['Authorization'];
+      } else if (apiKey) {
+          // Standard Bearer Token for everyone else (Groq, OpenAI, etc)
+          headers['Authorization'] = `Bearer ${apiKey}`;
       }
 
       // Special handling for o1 models which require specific temperature
@@ -112,6 +116,12 @@ export class UniversalLLMService {
         } catch (e) {
             // Fallback
         }
+        
+        // Helpful hints for common errors
+        if (response.status === 404 && settings.model.includes('gpt-5')) {
+             errorMessage += "\n(Note: You are trying to use a future/preview model on a provider that probably doesn't support it yet.)";
+        }
+
         throw new Error(errorMessage);
       }
 
