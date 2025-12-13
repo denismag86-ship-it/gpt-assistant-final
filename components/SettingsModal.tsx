@@ -296,3 +296,4 @@ const SettingsModal: FC<SettingsModalProps> = ({ isOpen, onClose, settings, onSa
 };
 
 export default SettingsModal;
+
