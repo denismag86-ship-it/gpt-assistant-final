@@ -100,3 +100,4 @@ export const DEFAULT_SETTINGS = {
   temperature: 0.7,
   keyMap: {}, 
 };
+
